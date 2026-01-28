@@ -1,48 +1,61 @@
 use crate::fs;
-use iced::application::StyleSheet;
 use serde::{Deserialize, Serialize};
 use std::cmp::Ordering;
-
-#[cfg(feature = "wgpu")]
-use iced_renderer::Renderer as IRenderer;
-
-#[cfg(feature = "opengl")]
-use iced_glow::Renderer as IRenderer;
-
-// TODO
-// finish carryover from original stylesheet here: https://github.com/ajour/ajour/blob/master/src/gui/style.rs
-pub mod application;
-pub mod button;
-pub mod card;
-pub mod checkbox;
-pub mod container;
-pub mod modal;
-pub mod picklist;
-pub mod radio;
-pub mod scrollable;
-pub mod table_header;
-pub mod table_row;
-pub mod text;
-pub mod text_editor;
-pub mod text_input;
-
-pub use button::ButtonStyle;
-pub use card::CardStyle;
-pub use checkbox::CheckboxStyle;
-pub use container::ContainerStyle;
-pub use modal::ModalStyle;
-pub use picklist::PickListStyle;
-pub use radio::RadioStyle;
-pub use scrollable::ScrollableStyle;
-pub use table_header::TableHeaderStyle;
-pub use table_row::TableRowStyle;
-pub use text_editor::TextEditorStyle;
-pub use text_input::TextInputStyle;
 
 pub async fn load_user_themes() -> Vec<Theme> {
 	log::debug!("loading user themes");
 
 	fs::load_user_themes().await
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Default, Deserialize, Serialize)]
+pub struct Color {
+	pub r: f32,
+	pub g: f32,
+	pub b: f32,
+	pub a: f32,
+}
+
+impl Color {
+	pub const TRANSPARENT: Color = Color {
+		r: 0.0,
+		g: 0.0,
+		b: 0.0,
+		a: 0.0,
+	};
+
+	pub const fn from_rgb(r: f32, g: f32, b: f32) -> Self {
+		Color { r, g, b, a: 1.0 }
+	}
+
+	pub fn to_hex(&self) -> String {
+		format!(
+			"#{:02X}{:02X}{:02X}",
+			(self.r * 255.0) as u8,
+			(self.g * 255.0) as u8,
+			(self.b * 255.0) as u8
+		)
+	}
+
+	pub fn to_rgba_hex(&self) -> String {
+		format!(
+			"#{:02X}{:02X}{:02X}{:02X}",
+			(self.r * 255.0) as u8,
+			(self.g * 255.0) as u8,
+			(self.b * 255.0) as u8,
+			(self.a * 255.0) as u8
+		)
+	}
+
+	pub fn with_alpha(self, a: f32) -> Self {
+		Color { a, ..self }
+	}
+}
+
+impl From<Color> for String {
+	fn from(c: Color) -> String {
+		c.to_hex()
+	}
 }
 
 #[derive(Debug, Clone, Default, Deserialize, Serialize)]
@@ -51,55 +64,36 @@ pub struct Theme {
 	pub palette: ColorPalette,
 }
 
-pub type Renderer = IRenderer;
-pub type Container<'a, Message> = iced::widget::Container<'a, Message, Theme, Renderer>;
-pub type Element<'a, Message> = iced::Element<'a, Message, Theme, Renderer>;
-pub type Column<'a, Message> = iced::widget::Column<'a, Message, Theme, Renderer>;
-pub type Row<'a, Message> = iced::widget::Row<'a, Message, Theme, Renderer>;
-pub type Text<'a> = iced::widget::Text<'a, Theme, Renderer>;
-pub type TextInput<'a, Message> = iced::widget::TextInput<'a, Message, Theme, Renderer>;
-pub type TextEditor<'a, Message, Theme, Renderer> =
-	iced::widget::TextEditor<'a, Message, Theme, Renderer>;
-pub type Button<'a, Message> = iced::widget::Button<'a, Message, Theme, Renderer>;
-pub type Scrollable<'a, Message> = iced::widget::Scrollable<'a, Message, Theme, Renderer>;
-pub type PickList<'a, T, L, V, Message> =
-	iced::widget::PickList<'a, T, L, V, Message, Theme, Renderer>;
-pub type Radio<Message> = iced::widget::Radio<Message, Theme, Renderer>;
-pub type Card<'a, Message> = iced_aw::Card<'a, Message, Theme, Renderer>;
-pub type Modal<'a, Message, Theme, Renderer> = iced_aw::modal::Modal<'a, Message, Theme, Renderer>;
-pub type TableHeader<'a, Message, Theme> = iced_aw::TableHeader<'a, Message, Theme, Renderer>;
-pub type TableRow<'a, Message, Theme> = iced_aw::TableRow<'a, Message, Theme, Renderer>;
-
 #[derive(Debug, Clone, Copy, Default, Deserialize, Serialize)]
 pub struct BaseColors {
 	#[serde(with = "serde_color")]
-	pub background: iced::Color,
+	pub background: Color,
 	#[serde(with = "serde_color")]
-	pub foreground: iced::Color,
+	pub foreground: Color,
 }
 
 #[derive(Debug, Clone, Copy, Default, Deserialize, Serialize)]
 pub struct NormalColors {
 	#[serde(with = "serde_color")]
-	pub primary: iced::Color,
+	pub primary: Color,
 	#[serde(with = "serde_color")]
-	pub secondary: iced::Color,
+	pub secondary: Color,
 	#[serde(with = "serde_color")]
-	pub surface: iced::Color,
+	pub surface: Color,
 	#[serde(with = "serde_color")]
-	pub error: iced::Color,
+	pub error: Color,
 }
 
 #[derive(Debug, Clone, Copy, Default, Deserialize, Serialize)]
 pub struct BrightColors {
 	#[serde(with = "serde_color")]
-	pub primary: iced::Color,
+	pub primary: Color,
 	#[serde(with = "serde_color")]
-	pub secondary: iced::Color,
+	pub secondary: Color,
 	#[serde(with = "serde_color")]
-	pub surface: iced::Color,
+	pub surface: Color,
 	#[serde(with = "serde_color")]
-	pub error: iced::Color,
+	pub error: Color,
 }
 
 #[derive(Debug, Clone, Copy, Default, Deserialize, Serialize)]
@@ -128,6 +122,23 @@ impl Theme {
 			("Solarized Light".to_string(), Theme::solarized_light()),
 			("Sort".to_string(), Theme::sort()),
 		]
+	}
+
+	pub fn to_css_variables(&self) -> String {
+		let p = &self.palette;
+		format!(
+			"--base-bg: {}; --base-fg: {}; --normal-primary: {}; --normal-secondary: {}; --normal-surface: {}; --normal-error: {}; --bright-primary: {}; --bright-secondary: {}; --bright-surface: {}; --bright-error: {};",
+			p.base.background.to_hex(),
+			p.base.foreground.to_hex(),
+			p.normal.primary.to_hex(),
+			p.normal.secondary.to_hex(),
+			p.normal.surface.to_hex(),
+			p.normal.error.to_hex(),
+			p.bright.primary.to_hex(),
+			p.bright.secondary.to_hex(),
+			p.bright.surface.to_hex(),
+			p.bright.error.to_hex(),
+		)
 	}
 
 	pub fn dark() -> Theme {
@@ -491,7 +502,7 @@ impl Theme {
 	}
 }
 
-fn hex_to_color(hex: &str) -> Option<iced::Color> {
+fn hex_to_color(hex: &str) -> Option<Color> {
 	if hex.len() == 7 {
 		let hash = &hex[0..1];
 		let r = u8::from_str_radix(&hex[1..3], 16);
@@ -499,7 +510,7 @@ fn hex_to_color(hex: &str) -> Option<iced::Color> {
 		let b = u8::from_str_radix(&hex[5..7], 16);
 
 		return match (hash, r, g, b) {
-			("#", Ok(r), Ok(g), Ok(b)) => Some(iced::Color {
+			("#", Ok(r), Ok(g), Ok(b)) => Some(Color {
 				r: r as f32 / 255.0,
 				g: g as f32 / 255.0,
 				b: b as f32 / 255.0,
@@ -512,15 +523,13 @@ fn hex_to_color(hex: &str) -> Option<iced::Color> {
 	None
 }
 
-fn color_to_hex(color: &iced::Color) -> String {
-	let mut color_str = String::from("#");
-
-	let iced::Color { r, g, b, .. } = color;
-	color_str.push_str(&format!("{:02X}", (r * 255.0) as u8));
-	color_str.push_str(&format!("{:02X}", (g * 255.0) as u8));
-	color_str.push_str(&format!("{:02X}", (b * 255.0) as u8));
-
-	color_str
+fn color_to_hex(color: &Color) -> String {
+	format!(
+		"#{:02X}{:02X}{:02X}",
+		(color.r * 255.0) as u8,
+		(color.g * 255.0) as u8,
+		(color.b * 255.0) as u8
+	)
 }
 
 impl PartialEq for Theme {
@@ -543,23 +552,22 @@ impl Ord for Theme {
 	}
 }
 
-// Newtype on iced::Color so we can impl Deserialzer for it
-struct Color(iced::Color);
+struct ColorWrapper(Color);
 
 mod serde_color {
-	use super::{color_to_hex, hex_to_color, Color};
+	use super::{color_to_hex, hex_to_color, ColorWrapper, Color};
 	use serde::de::{self, Error, Unexpected, Visitor};
 	use serde::ser;
 	use std::fmt;
 
-	pub(crate) fn deserialize<'de, D>(deserializer: D) -> Result<iced::Color, D::Error>
+	pub(crate) fn deserialize<'de, D>(deserializer: D) -> Result<Color, D::Error>
 	where
 		D: de::Deserializer<'de>,
 	{
 		struct ColorVisitor;
 
 		impl<'de> Visitor<'de> for ColorVisitor {
-			type Value = Color;
+			type Value = ColorWrapper;
 
 			fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
 				formatter.write_str("a hex string in the format of '#09ACDF'")
@@ -571,7 +579,7 @@ mod serde_color {
 				E: Error,
 			{
 				if let Some(color) = hex_to_color(s) {
-					return Ok(Color(color));
+					return Ok(ColorWrapper(color));
 				}
 
 				Err(de::Error::invalid_value(Unexpected::Str(s), &self))
@@ -581,7 +589,7 @@ mod serde_color {
 		deserializer.deserialize_any(ColorVisitor).map(|c| c.0)
 	}
 
-	pub(crate) fn serialize<S>(color: &iced::Color, serializer: S) -> Result<S::Ok, S::Error>
+	pub(crate) fn serialize<S>(color: &Color, serializer: S) -> Result<S::Ok, S::Error>
 	where
 		S: ser::Serializer,
 	{
@@ -617,10 +625,10 @@ mod tests {
 	#[test]
 	fn test_hex_color_ser() {
 		let color = super::NormalColors {
-			primary: iced::Color::from_rgb(1.0, 1.0, 1.0),
-			secondary: iced::Color::from_rgb(0.5, 0.6, 0.75789),
-			surface: iced::Color::from_rgb(0.1, 0.2, 0.3),
-			error: iced::Color::from_rgb(0.0, 0.0, 0.0),
+			primary: super::Color::from_rgb(1.0, 1.0, 1.0),
+			secondary: super::Color::from_rgb(0.5, 0.6, 0.75789),
+			surface: super::Color::from_rgb(0.1, 0.2, 0.3),
+			error: super::Color::from_rgb(0.0, 0.0, 0.0),
 		};
 
 		let ser = serde_yaml::to_string(&color).unwrap();

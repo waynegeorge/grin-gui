@@ -1,3 +1,13 @@
 .vscode
 /target
 */*/target
+
+# Tauri
+src-tauri/target
+
+# SolidJS / Node
+ui/node_modules
+ui/dist
+
+# Generated
+nul

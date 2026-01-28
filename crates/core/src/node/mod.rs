@@ -19,7 +19,7 @@ use crate::{fs::GRINGUI_CONFIG_DIR, logger};
 
 pub use global::ChainTypes;
 
-use iced_futures::futures::channel::mpsc as iced_mpsc;
+use tokio::sync::mpsc as tokio_mpsc;
 use subscriber::UIMessage;
 
 pub mod subscriber;
@@ -96,7 +96,7 @@ fn log_feature_flags() {
 pub struct Controller<'a> {
 	logs_rx: mpsc::Receiver<LogEntry>,
 	controller_rx: &'a mpsc::Receiver<ControllerMessage>,
-	ui_tx: iced_mpsc::Sender<UIMessage>,
+	ui_tx: tokio_mpsc::Sender<UIMessage>,
 }
 
 pub enum ControllerMessage {
@@ -109,7 +109,7 @@ impl<'a> Controller<'a> {
 	/// Create a new controller
 	pub fn new(
 		logs_rx: mpsc::Receiver<LogEntry>,
-		ui_tx: iced_mpsc::Sender<UIMessage>,
+		ui_tx: tokio_mpsc::Sender<UIMessage>,
 		controller_rx: &'a mpsc::Receiver<ControllerMessage>,
 	) -> Self {
 		Self {
@@ -155,7 +155,7 @@ impl<'a> Controller<'a> {
 pub struct NodeInterface {
 	pub chain_type: Option<global::ChainTypes>,
 	pub config: Option<GlobalConfig>,
-	pub ui_sender: Option<iced_mpsc::Sender<UIMessage>>, //pub ui_rx: mpsc::Receiver<UIMessage>,
+	pub ui_sender: Option<tokio_mpsc::Sender<UIMessage>>, //pub ui_rx: mpsc::Receiver<UIMessage>,
 	pub node_started: bool,
 	controller_tx: Option<mpsc::Sender<ControllerMessage>>,
 	handle: Option<std::thread::JoinHandle<()>>,
@@ -173,7 +173,7 @@ impl NodeInterface {
 		}
 	}
 
-	pub fn set_ui_sender(&mut self, ui_sender: iced_mpsc::Sender<UIMessage>) {
+	pub fn set_ui_sender(&mut self, ui_sender: tokio_mpsc::Sender<UIMessage>) {
 		self.ui_sender = Some(ui_sender)
 	}
 

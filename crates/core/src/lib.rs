@@ -10,7 +10,6 @@ pub mod logger;
 pub mod network;
 pub mod node;
 pub mod theme;
-#[cfg(feature = "wgpu")]
 pub mod utility;
 pub mod wallet;
 
@@ -20,6 +19,5 @@ extern crate lazy_static;
 #[macro_use]
 extern crate log;
 
-// Re-exports
 pub use grin_core::consensus::GRIN_BASE;
 pub use grin_util::logger::{LogEntry, LoggingConfig};
