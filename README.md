@@ -2,6 +2,9 @@
 
 An integrated desktop GUI for both Grin Wallet and Grin Node, built with [Tauri v2](https://tauri.app/) and [SolidJS](https://www.solidjs.com/).
 
+<img width="1354" height="947" alt="image" src="https://github.com/user-attachments/assets/e88dc1b5-dd38-42de-b0bd-8f65d0ac2535" />
+
+
 ## Goals
 
 The Grin team has spent countless hours making Grin's infrastructure extremely flexible, with multiple ways of running nodes and wallets and extensive developer APIs and documentation for both.
