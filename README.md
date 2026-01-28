@@ -1,7 +1,8 @@
 # Grin GUI
-This is a very Work-in-Progress implementation of the Grin Core Team's Integrated GUI for both Grin Wallet and Grin Node. 
 
-# Goals
+An integrated desktop GUI for both Grin Wallet and Grin Node, built with [Tauri v2](https://tauri.app/) and [SolidJS](https://www.solidjs.com/).
+
+## Goals
 
 The Grin team has spent countless hours making Grin's infrastructure extremely flexible, with multiple ways of running nodes and wallets and extensive developer APIs and documentation for both.
 
@@ -12,56 +13,110 @@ This project aims to pull all of this work together to create a lightweight, fle
   * Create and manage a Grin node in-application if desired, while also retaining the options to communicate with other configured or public nodes.
   * The ability to create, configure and manage multiple wallets and nodes including existing installations
 
-# Status
+## Architecture
 
-**NOTHING WORKS AT PRESENT**
+The application is split into three layers:
 
-* UI Framework [iced-rs](https://github.com/iced-rs/iced) has been selected.
-* Overall structure of project is in place based on [ajour](https://github.com/ajour/ajour) as a sample project
-* Some refactoring of project structure to better separate GUI elements and events
-* Theming, localization, UI scaling is in place
-* Windows systray functionality in place
+- **Core library** (`crates/core/`) — Rust business logic wrapping the upstream `grin` and `grin-wallet` crates. Handles wallet operations, node management, config, and theming.
+- **Tauri backend** (`src-tauri/`) — Thin Rust layer exposing core functionality as IPC commands. Manages application state (`Config`, `WalletInterface`, `NodeInterface`) and emits node status events.
+- **SolidJS frontend** (`ui/`) — Reactive UI built with SolidJS, Vite, and Tailwind CSS v4. Communicates with the backend exclusively through Tauri's `invoke()` and event listener APIs.
 
-# Current Focus
+## Status
 
-In contrast to most Grin development, Grin GUI is being developed on Windows, with Windows being the first-class citizen. MacOS and Linux will of course also be supported.
+**Work in progress.** The application builds and runs. The UI is functional with real backend integration for wallet and node operations.
 
-Current work is: 
+### What works
+- Wallet creation and restoration from recovery phrase
+- Multiple wallet management (create, list, select, open/close)
+- Wallet balance display and slatepack address
+- Transaction list with detail view
+- Send and receive flows (Legacy and Contracts modes) with slatepack exchange
+- Embedded Grin node with live sync status (progress bar, block height, peers, difficulty)
+- Theme system with multiple built-in themes, persisted to config
+- Settings persistence (theme, language, transaction method)
+- Single-instance enforcement and system tray (Windows)
 
-* Including grin wallet + API 
-* First-time 'Out of Box' setup and creation of a grin wallet from the UI
-* Wallet + Node configuration options
+### What's next
+- Localization (translation files exist but aren't wired into UI components yet)
+- Payment proof verification UI
+- Contract revoke command
+- Node configuration options
+- Wallet backup/restore UI
+- Error boundaries in the frontend
+- Cross-platform testing (Linux, macOS)
 
-# Contributing
+## Building
 
-Yes please! This is an excellent project for anyone wanting to get their feet wet with Grin development. Detailed knowledge of Grin's internals is not required, just a familiarity with Grin's APIs and a willingness to dive into [iced-rs](https://github.com/iced-rs/iced).
+### Prerequisites
+- Rust >= 1.59 (recommend latest via `rustup update`)
+- Node.js >= 18
+- Windows: `llvm` must be installed
+- Linux:
+  ```bash
+  sudo apt install build-essential cmake git libgit2-dev clang libncurses5-dev libncursesw5-dev zlib1g-dev pkg-config libssl-dev llvm libfontconfig libfontconfig1-dev libwebkit2gtk-4.1-dev libayatana-appindicator3-dev
+  ```
 
-See [Grin project contribution](https://github.com/mimblewimble/grin/blob/master/CONTRIBUTING.md) for general guidelines we'll eventually be using, however this project is still far too new for most of this to be relevant.
+### Build & Run
 
-# Building
+```bash
+# Install frontend dependencies
+cd ui && npm install && cd ..
 
-## Prerequisites
-* rust: Install using rustup: https://rustup.rs
-    * Rustc version >= 1.59
-    * it is recommended to build using the latest version.
-    * If rust is already installed, you can update to the latest version by running `rustup update`
+# Development (debug build)
+cargo run -p grin-gui
 
-### Windows
-* `llvm` must be installed
+# Release build
+cargo build -p grin-gui --release
 
-### Linux
-> For Debian-based distributions (Debian, Ubuntu, Mint, etc), all in one line (except Rust):
+# Build frontend separately
+cd ui && npm run build
+```
 
-* ``` sudo apt install build-essential cmake git libgit2-dev clang libncurses5-dev libncursesw5-dev zlib1g-dev pkg-config libssl-dev llvm libfontconfig libfontconfig1-dev```
+### Testing
 
-(instructions not yet complete)
+```bash
+cargo test --release --all
+```
 
-# Acknowledgement
+## Project Structure
 
-* Thanks to [iced-rs](https://github.com/iced-rs/iced) for a workable native Rust GUI
-* Thank you to [ajour](https://github.com/ajour/ajour) for a completely working, non-trivial and tested-in-the-wild iced-rs project to use as a base for development.
+```
+grin-gui/
+├── crates/core/          # grin-gui-core: wallet, node, config, theme
+│   └── src/
+│       ├── wallet/       # Wallet interface (grin-wallet APIs)
+│       ├── node/         # Node interface + event subscriber
+│       ├── config/       # Config structs, persistence
+│       └── theme/        # Theme definitions
+├── src-tauri/            # Tauri v2 backend
+│   └── src/
+│       ├── lib.rs        # AppState, setup, command registration
+│       ├── commands.rs   # 20 IPC command handlers
+│       ├── types.rs      # Serializable response types
+│       └── node_events.rs # Node status event emitter
+├── ui/                   # SolidJS frontend
+│   └── src/
+│       ├── App.tsx       # Router with wallet sub-routing
+│       ├── components/   # Sidebar, TxTable, TxDetail
+│       └── screens/      # About, NodeStatus, Settings, wallet/*
+└── locale/               # i18n translation files (en, de)
+```
 
-# License
+## Contributing
+
+Contributions are welcome. This is an excellent project for anyone wanting to get involved with Grin development. The frontend uses SolidJS (similar to React but with fine-grained reactivity) and the backend is standard Rust with Tauri IPC.
+
+See [Grin project contribution guidelines](https://github.com/mimblewimble/grin/blob/master/CONTRIBUTING.md) for general guidance.
+
+In contrast to most Grin development, Grin GUI is primarily developed on Windows, with Windows being the first-class citizen. macOS and Linux are also supported.
+
+## Acknowledgement
+
+- [Tauri](https://tauri.app/) for the desktop application framework
+- [SolidJS](https://www.solidjs.com/) for the reactive UI library
+- [ajour](https://github.com/ajour/ajour) for the original project structure inspiration
+
+## License
 
 GPL 3.0 (for the time being)
 
